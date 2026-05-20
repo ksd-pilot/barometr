@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Barometr 🌡️</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#ffffff;--surface:#ffffff;--surface2:#f5f5f5;--border:#e5e5e5;
+  --text:#1a1a1a;--muted:#888888;--hint:#cccccc;
+  --yes:#2a7d4f;--no:#cc3333;--accent:#e8581a;--accent2:#e8581a;
+  --orange:#e8581a;--blue:#3a7abf;
+  --r:20px;--card-r:24px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text)}
+#root{height:100%;display:flex;flex-direction:column}
+
+/* ── SCREENS ── */
+.screen{display:none;flex-direction:column;height:100%;overflow:hidden}
+.screen.active{display:flex}
+
+/* ── ONBOARDING ── */
+#s-onboard{background:var(--bg);padding:0}
+.onboard-inner{flex:1;display:flex;flex-direction:column;justify-content:flex-start;padding:2rem 1.5rem 1.5rem;overflow-y:auto}
+.brand-big{font-size:2.8rem;font-weight:800;letter-spacing:-2px;line-height:1;margin-bottom:.3rem}
+.brand-big span{color:var(--accent2)}
+.tagline{font-size:.9rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.5}
+.ob-step{display:none}.ob-step.active{display:block}
+.ob-label{font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:.8rem;font-weight:600}
+.ob-q{font-size:1.3rem;font-weight:700;margin-bottom:1.5rem;line-height:1.3}
+.chip-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.5rem}
+.chip{background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:14px 12px;text-align:center;cursor:pointer;font-size:.9rem;font-weight:500;transition:all .15s;color:var(--text);-webkit-user-select:none;user-select:none}
+.chip.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.wide{grid-column:1/-1}
+.ob-nav{display:flex;gap:10px;margin-top:.5rem}
+.btn-ob-next{flex:1;background:var(--accent);color:#fff;border:none;border-radius:14px;padding:16px;font-size:1rem;font-weight:700;cursor:pointer;opacity:.4;transition:opacity .2s}
+.btn-ob-next.ready{opacity:1}
+.btn-ob-skip{background:transparent;border:none;color:var(--muted);font-size:.85rem;cursor:pointer;padding:16px 12px}
+.ob-dots{display:flex;gap:6px;margin-bottom:1.2rem}
+.ob-dot{width:6px;height:6px;border-radius:50%;background:var(--border)}
+.ob-dot.done{background:var(--accent2)}
+.ob-dot.cur{background:var(--accent);width:20px;border-radius:3px}
+.gdpr-tiny{font-size:.72rem;color:var(--hint);line-height:1.5;margin-top:1rem}
+
+/* ── QUIZ SCREEN ── */
+#s-quiz{background:var(--bg)}
+.quiz-top{padding:.8rem 1.2rem .4rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.q-progress-wrap{flex:1;margin:0 1rem}
+.q-prog-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.q-prog-fill{height:100%;background:var(--accent2);border-radius:2px;transition:width .4s ease}
+.q-counter{font-size:.75rem;color:var(--muted);white-space:nowrap}
+.streak-badge{font-size:.8rem;font-weight:700;color:var(--orange);display:flex;align-items:center;gap:3px}
+
+/* Card stack */
+.card-stack{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem 1.2rem;position:relative;overflow:hidden}
+.q-card{background:var(--surface);border-radius:var(--card-r);border:1px solid var(--border);padding:1.6rem 1.5rem 1.4rem;width:100%;max-width:420px;position:relative;overflow:hidden;transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s}
+.q-card.exit-left{transform:translateX(-120%) rotate(-12deg);opacity:0}
+.q-card.exit-right{transform:translateX(120%) rotate(12deg);opacity:0}
+.q-cat-pill{display:inline-block;font-size:.65rem;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;padding:4px 10px;border-radius:20px;margin-bottom:1rem}
+.q-cat-politik{background:#fff0e8;color:#c04010}
+.q-cat-ekonomika{background:#fff8e8;color:#9a6800}
+.q-cat-zabava{background:#eaf5ee;color:#2a7a46}
+.q-cat-sport{background:#e8f2fa;color:#2a5a90}
+.q-cat-spolecnost{background:#faeaea;color:#b03030}
+.q-text{font-size:1.25rem;font-weight:700;line-height:1.35;margin-bottom:.5rem}
+.q-subtext{font-size:.85rem;color:var(--muted);margin-bottom:1.2rem;line-height:1.4}
+
+/* Swipe hint */
+.swipe-hint{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.4rem;opacity:.5}
+.swipe-dir{font-size:.75rem;font-weight:600;display:flex;align-items:center;gap:5px}
+.swipe-dir.left{color:var(--no)}
+.swipe-dir.right{color:var(--yes)}
+
+/* Answer options */
+.ans-yesno{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:.5rem}
+.ans-btn{border:1.5px solid var(--border);border-radius:16px;padding:16px 10px;text-align:center;cursor:pointer;font-weight:700;font-size:1rem;transition:all .15s;background:var(--surface2);color:var(--text);-webkit-user-select:none;user-select:none;position:relative;overflow:hidden}
+.ans-btn.yes{border-color:#22c55e44;color:var(--yes)}
+.ans-btn.no{border-color:#ef444444;color:var(--no)}
+.ans-btn:active{transform:scale(.96)}
+.ans-btn.picked-yes{background:var(--yes);border-color:var(--yes);color:#fff}
+.ans-btn.picked-no{background:var(--no);border-color:var(--no);color:#fff}
+.ans-multi{display:flex;flex-direction:column;gap:8px;margin-top:.5rem}
+.ans-multi-btn{border:1.5px solid var(--border);border-radius:14px;padding:13px 16px;cursor:pointer;font-size:.9rem;font-weight:500;background:var(--surface2);color:var(--text);text-align:left;transition:all .15s;display:flex;align-items:center;gap:10px;-webkit-user-select:none;user-select:none}
+.ans-multi-btn.picked{background:var(--accent);border-color:var(--accent);color:#fff}
+.ans-multi-btn .opt-key{font-size:.75rem;font-weight:700;color:var(--muted);min-width:18px}
+.ans-multi-btn.picked .opt-key{color:rgba(255,255,255,.7)}
+.ans-scale{display:flex;gap:6px;margin-top:.5rem;justify-content:space-between}
+.scale-btn{flex:1;border:1.5px solid var(--border);border-radius:12px;padding:14px 4px;cursor:pointer;font-size:1.1rem;font-weight:700;background:var(--surface2);color:var(--text);text-align:center;transition:all .15s;-webkit-user-select:none;user-select:none}
+.scale-btn.picked{background:var(--accent);border-color:var(--accent);color:#fff}
+.ans-text-wrap{margin-top:.5rem}
+.ans-text-wrap textarea{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:14px;color:var(--text);font-size:.95rem;resize:none;font-family:inherit;line-height:1.5;outline:none}
+.ans-text-wrap textarea:focus{border-color:var(--accent2)}
+.ans-text-wrap textarea::placeholder{color:var(--hint)}
+.btn-send-text{width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:13px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:8px;opacity:.4;transition:opacity .2s}
+.btn-send-text.ready{opacity:1}
+
+/* Result overlay on card */
+.result-overlay{margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.res-bar-row{margin-bottom:8px}
+.res-bar-label{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:4px}
+.res-bar-label .rl{color:var(--text);font-weight:500}
+.res-bar-label .rp{font-weight:700}
+.res-bar-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.res-bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.res-total{font-size:.72rem;color:var(--muted);margin-top:.5rem;text-align:right}
+.btn-next-q{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:14px;font-size:.95rem;font-weight:700;cursor:pointer;color:var(--text);margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.btn-next-q:hover{background:var(--border)}
+
+/* ── DONE SCREEN ── */
+#s-done{background:var(--bg);align-items:center;justify-content:center;padding:2rem}
+.done-inner{text-align:center;max-width:360px}
+.done-emoji{font-size:4rem;margin-bottom:1rem;animation:pop .4s cubic-bezier(.36,.07,.19,.97)}
+@keyframes pop{0%{transform:scale(0)}80%{transform:scale(1.15)}100%{transform:scale(1)}}
+.done-title{font-size:1.8rem;font-weight:800;margin-bottom:.5rem}
+.done-sub{color:var(--muted);font-size:.95rem;line-height:1.6;margin-bottom:2rem}
+.streak-display{background:var(--surface);border-radius:20px;padding:1.2rem 2rem;margin-bottom:2rem;border:1px solid var(--border)}
+.streak-num{font-size:3rem;font-weight:800;color:var(--orange)}
+.streak-label{font-size:.8rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.share-row{display:flex;gap:10px;margin-bottom:1.5rem}
+.share-btn{flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:12px 8px;cursor:pointer;color:var(--text);font-size:.85rem;font-weight:600;transition:background .15s}
+.share-btn:hover{background:var(--border)}
+.btn-results{background:var(--accent);color:#fff;border:none;border-radius:14px;padding:15px;font-size:1rem;font-weight:700;cursor:pointer;width:100%}
+.next-time{font-size:.8rem;color:var(--hint);margin-top:1rem}
+
+/* ── RESULTS SCREEN ── */
+#s-results{background:var(--bg);overflow-y:auto}
+.results-header{padding:1.2rem 1.2rem .6rem;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:12px}
+.results-header h2{font-size:1.1rem;font-weight:700;flex:1}
+.btn-back-results{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;display:flex;align-items:center;gap:4px}
+.results-content{padding:1rem 1.2rem;overflow-y:auto}
+.r-card{background:var(--surface);border-radius:20px;border:1px solid var(--border);padding:1.2rem 1.4rem;margin-bottom:1rem}
+.r-card-cat{font-size:.65rem;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin-bottom:.5rem;color:var(--muted)}
+.r-card-q{font-size:1rem;font-weight:700;margin-bottom:1rem;line-height:1.35}
+.r-bar-row{margin-bottom:7px}
+.r-label-row{display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:3px}
+.r-label-row .lbl{color:var(--text)}
+.r-label-row .pct{font-weight:700;color:var(--accent2)}
+.r-track{height:10px;background:var(--surface2);border-radius:5px;overflow:hidden}
+.r-fill{height:100%;border-radius:5px}
+.r-total{font-size:.7rem;color:var(--hint);text-align:right;margin-top:.5rem}
+.r-your-ans{font-size:.75rem;color:var(--accent2);margin-top:.6rem;display:flex;align-items:center;gap:4px}
+
+/* ── ADMIN SCREEN ── */
+#s-admin{background:var(--bg);overflow:hidden}
+.admin-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.admin-tab{flex:1;padding:12px;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--muted);border:none;background:none;border-bottom:2px solid transparent;transition:all .15s}
+.admin-tab.active{color:var(--accent2);border-bottom-color:var(--accent2)}
+.admin-pane{display:none;flex:1;overflow-y:auto;padding:1rem 1.2rem}
+.admin-pane.active{display:block}
+.admin-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.admin-header h3{font-size:1rem;font-weight:700}
+
+/* Question editor */
+.q-editor{background:var(--surface);border-radius:18px;border:1px solid var(--border);padding:1.2rem;margin-bottom:1rem}
+.q-editor-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:.8rem}
+.q-editor-badge{font-size:.65rem;letter-spacing:1px;text-transform:uppercase;font-weight:700;padding:4px 8px;border-radius:8px;white-space:nowrap;margin-top:2px}
+.q-editor-text{font-size:.95rem;font-weight:500;line-height:1.4;flex:1}
+.q-editor-type{font-size:.72rem;color:var(--muted);margin-bottom:.6rem}
+.q-editor-actions{display:flex;gap:8px}
+.q-act-btn{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 6px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--text);transition:background .15s}
+.q-act-btn:hover{background:var(--border)}
+.q-act-btn.approve{border-color:#22c55e44;color:var(--yes)}
+.q-act-btn.reject{border-color:#ef444444;color:var(--no)}
+.q-act-btn.approved{background:#22c55e22;border-color:var(--yes);color:var(--yes)}
+.q-status-chip{font-size:.65rem;padding:3px 8px;border-radius:8px;font-weight:700}
+.chip-pending{background:#fff8e8;color:#9a6800}
+.chip-approved{background:#eaf5ee;color:#2a7a46}
+.chip-rejected{background:#faeaea;color:#b03030}
+
+/* Manual question form */
+.form-group{margin-bottom:1rem}
+.form-label{font-size:.75rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:.5rem;display:block}
+.form-input,.form-select,.form-textarea{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-size:.9rem;font-family:inherit;outline:none;transition:border-color .15s}
+.form-input:focus,.form-textarea:focus{border-color:var(--accent2)}
+.form-select{appearance:none;cursor:pointer}
+.form-textarea{resize:none;line-height:1.5}
+.opts-editor{display:flex;flex-direction:column;gap:6px;margin-top:.5rem}
+.opt-row{display:flex;gap:6px;align-items:center}
+.opt-row input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text);font-size:.85rem;font-family:inherit;outline:none}
+.opt-row input:focus{border-color:var(--accent2)}
+.btn-add-opt{background:transparent;border:1px dashed var(--border);border-radius:10px;padding:8px;color:var(--muted);cursor:pointer;font-size:.8rem;margin-top:4px;width:100%}
+.btn-submit-q{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px;font-size:.95rem;font-weight:700;cursor:pointer;width:100%;margin-top:.5rem}
+.btn-generate{background:var(--surface2);border:1px solid var(--accent);border-radius:12px;padding:13px;font-size:.9rem;font-weight:600;cursor:pointer;color:var(--accent2);width:100%;margin-bottom:1rem;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.btn-generate:hover{background:var(--surface)}
+.gen-spinner{display:none;width:16px;height:16px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Stats pane */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.2rem}
+.stat-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:1rem}
+.stat-val{font-size:1.8rem;font-weight:800;line-height:1}
+.stat-lbl{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:.3rem}
+.demo-section{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:1rem;margin-bottom:1rem}
+.demo-title{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom.8rem}
+.demo-bar-row{margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.demo-bar-lbl{font-size:.78rem;min-width:90px;color:var(--text)}
+.demo-bar-track{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.demo-bar-fill{height:100%;background:var(--accent2);border-radius:4px}
+.demo-bar-pct{font-size:.72rem;color:var(--muted);min-width:28px;text-align:right}
+
+/* Nav bar */
+.nav-bar{display:flex;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface)}
+.nav-btn{flex:1;padding:10px 4px 8px;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--hint);font-size:.62rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;transition:color .15s}
+.nav-btn.active{color:var(--accent2)}
+.nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* Already voted */
+#s-voted{background:var(--bg);align-items:center;justify-content:center;padding:2rem;text-align:center}
+.voted-inner h2{font-size:1.5rem;font-weight:800;margin-bottom:.5rem}
+.voted-inner p{color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6}
+.countdown{font-size:2rem;font-weight:800;color:var(--accent2);margin-bottom:1.5rem;font-variant-numeric:tabular-nums}
+.btn-see-results{background:var(--accent);color:#fff;border:none;border-radius:14px;padding:15px 2rem;font-size:1rem;font-weight:700;cursor:pointer;width:100%}
+
+/* Swipe feedback */
+.swipe-feedback{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:4rem;opacity:0;pointer-events:none;transition:opacity .15s;z-index:10}
+.swipe-feedback.show{opacity:1}
+
+/* Toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 18px;font-size:.85rem;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:100}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="root">
+
+<!-- SCREEN: Onboarding -->
+<div class="screen active" id="s-onboard">
+  <div class="onboard-inner">
+    <div class="brand-big" id="brand-tap">Baro<span>metr</span></div>
+    <div class="tagline">Dnešní otázky. Za 60 sekund.<br>Zjisti co si myslí ostatní.</div>
+    <div class="ob-dots" id="ob-dots"></div>
+
+    <div class="ob-step active" id="ob-0">
+      <div class="ob-label">Věková skupina</div>
+      <div class="ob-q">Kolik ti je?</div>
+      <div class="chip-grid" id="chips-age">
+        <div class="chip" data-v="18-24" onclick="pickChip(this,'age')">18–24</div>
+        <div class="chip" data-v="25-34" onclick="pickChip(this,'age')">25–34</div>
+        <div class="chip" data-v="35-44" onclick="pickChip(this,'age')">35–44</div>
+        <div class="chip" data-v="45-54" onclick="pickChip(this,'age')">45–54</div>
+        <div class="chip" data-v="55-64" onclick="pickChip(this,'age')">55–64</div>
+        <div class="chip" data-v="65+" onclick="pickChip(this,'age')">65+</div>
+      </div>
+    </div>
+
+    <div class="ob-step" id="ob-1">
+      <div class="ob-label">Pohlaví</div>
+      <div class="ob-q">Jak se identifikuješ?</div>
+      <div class="chip-grid" id="chips-gender">
+        <div class="chip" data-v="muz" onclick="pickChip(this,'gender')">Muž</div>
+        <div class="chip" data-v="zena" onclick="pickChip(this,'gender')">Žena</div>
+        <div class="chip wide" data-v="jine" onclick="pickChip(this,'gender')">Jiné / Nechci uvést</div>
+      </div>
+    </div>
+
+    <div class="ob-step" id="ob-2">
+      <div class="ob-label">Kraj</div>
+      <div class="ob-q">Odkud jsi?</div>
+      <div class="chip-grid" id="chips-region">
+        <div class="chip" data-v="Praha" onclick="pickChip(this,'region')">Praha</div>
+        <div class="chip" data-v="Stredocesky" onclick="pickChip(this,'region')">Středočeský</div>
+        <div class="chip" data-v="Jihomoravsky" onclick="pickChip(this,'region')">Jihomoravský</div>
+        <div class="chip" data-v="Moravskoslezsky" onclick="pickChip(this,'region')">Moravskoslezský</div>
+        <div class="chip" data-v="Plzensky" onclick="pickChip(this,'region')">Plzeňský</div>
+        <div class="chip" data-v="Ustecky" onclick="pickChip(this,'region')">Ústecký</div>
+        <div class="chip" data-v="Jihoceski" onclick="pickChip(this,'region')">Jihočeský</div>
+        <div class="chip" data-v="Jiny" onclick="pickChip(this,'region')">Jiný kraj</div>
+      </div>
+    </div>
+
+    <div class="ob-step" id="ob-3">
+      <div class="ob-label">Vzdělání</div>
+      <div class="ob-q">Jaké máš vzdělání?</div>
+      <div class="chip-grid" id="chips-edu">
+        <div class="chip" data-v="zakladni" onclick="pickChip(this,'edu')">Základní</div>
+        <div class="chip" data-v="stredni" onclick="pickChip(this,'edu')">Střední</div>
+        <div class="chip" data-v="maturita" onclick="pickChip(this,'edu')">Maturita</div>
+        <div class="chip" data-v="vs" onclick="pickChip(this,'edu')">Vysokoškolské</div>
+      </div>
+      <div class="gdpr-tiny">Data jsou anonymizována a zpracovávána pouze v agregované podobě pro statistické účely. GDPR čl. 6 odst. 1 písm. a).</div>
+    </div>
+
+    <div class="ob-nav">
+      <button class="btn-ob-skip" id="ob-skip" onclick="obSkip()">Přeskočit</button>
+      <button class="btn-ob-next" id="ob-next" onclick="obNext()">Dál →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: Quiz -->
+<div class="screen" id="s-quiz">
+  <div class="quiz-top">
+    <div class="streak-badge" id="streak-disp">🔥 <span id="streak-n">0</span></div>
+    <div class="q-progress-wrap">
+      <div class="q-prog-track"><div class="q-prog-fill" id="q-prog" style="width:0%"></div></div>
+    </div>
+    <div class="q-counter" id="q-counter">1/5</div>
+  </div>
+  <div class="card-stack" id="card-stack">
+    <div id="swipe-fb-yes" class="swipe-feedback">✅</div>
+    <div id="swipe-fb-no" class="swipe-feedback">❌</div>
+  </div>
+</div>
+
+<!-- SCREEN: Done -->
+<div class="screen" id="s-done">
+  <div class="done-inner">
+    <div class="done-emoji" id="done-emoji">🎉</div>
+    <div class="done-title">Hotovo!</div>
+    <div class="done-sub">Odpověděl jsi na všechny dnešní otázky.<br>Zítra na tebe čekají nové.</div>
+    <div class="streak-display">
+      <div class="streak-num" id="done-streak">1</div>
+      <div class="streak-label">🔥 dní v řadě</div>
+    </div>
+    <div class="share-row">
+      <button class="share-btn" onclick="shareApp('copy')">📋 Kopírovat</button>
+      <button class="share-btn" onclick="shareApp('whatsapp')">💬 WhatsApp</button>
+      <button class="share-btn" onclick="shareApp('twitter')">𝕏 Tweet</button>
+    </div>
+    <button class="btn-results" onclick="renderResults();showScreen('s-results');updateNav()">Zobrazit výsledky →</button>
+    <div class="next-time" id="next-countdown">Nové otázky zítra v 6:00</div>
+  </div>
+</div>
+
+<!-- SCREEN: Already voted -->
+<div class="screen" id="s-voted">
+  <div class="voted-inner">
+    <div style="font-size:3rem;margin-bottom:.8rem">🔒</div>
+    <h2>Dnes jsi hlasoval</h2>
+    <p>Nové otázky přijdou zítra.<br>Mezitím si prohlédni výsledky nebo sdílej Barometr.</p>
+    <div class="countdown" id="voted-countdown">--:--:--</div>
+    <button class="btn-see-results" onclick="showScreen('s-results');updateNav()">Výsledky →</button>
+    <div style="margin-top:1rem">
+      <div class="share-row">
+        <button class="share-btn" onclick="shareApp('copy')">📋 Kopírovat</button>
+        <button class="share-btn" onclick="shareApp('whatsapp')">💬 WhatsApp</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: Results -->
+<div class="screen" id="s-results">
+  <div class="results-header">
+    <h2>Výsledky</h2>
+    <button class="btn-back-results" onclick="goBack()">← Zpět</button>
+  </div>
+  <div class="results-content" id="results-content"></div>
+</div>
+
+<!-- SCREEN: Admin -->
+<div class="screen" id="s-admin">
+  <div class="admin-tabs">
+    <button class="admin-tab active" onclick="adminTab('queue')">Fronta</button>
+    <button class="admin-tab" onclick="adminTab('add')">+ Přidat</button>
+    <button class="admin-tab" onclick="adminTab('stats')">Statistiky</button>
+  </div>
+  <div class="admin-pane active" id="ap-queue">
+    <div class="admin-header">
+      <h3>Otázky ke schválení</h3>
+      <button class="btn-generate" style="width:auto;padding:8px 14px;margin:0;font-size:.78rem" onclick="generateQuestions()">
+        <span class="gen-spinner" id="gen-spin"></span>
+        ✨ Generovat AI
+      </button>
+    </div>
+    <div id="q-queue-list"></div>
+  </div>
+  <div class="admin-pane" id="ap-add">
+    <h3 style="margin-bottom:1rem;font-size:1rem;font-weight:700">Nová otázka ručně</h3>
+    <div class="form-group">
+      <label class="form-label">Kategorie</label>
+      <select class="form-select" id="add-cat">
+        <option value="Politik">Politika</option>
+        <option value="Ekonomika">Ekonomika</option>
+        <option value="Zabava">Zábava</option>
+        <option value="Sport">Sport</option>
+        <option value="Spolecnost">Společnost</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Otázka</label>
+      <textarea class="form-textarea" id="add-text" rows="3" placeholder="Zadejte otázku..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Typ odpovědi</label>
+      <select class="form-select" id="add-type" onchange="updateAddForm()">
+        <option value="yesno">Ano / Ne</option>
+        <option value="multi">Výběr z možností</option>
+        <option value="scale">Škála 1–5</option>
+        <option value="text">Volný text</option>
+      </select>
+    </div>
+    <div id="add-opts-wrap"></div>
+    <button class="btn-submit-q" onclick="addManualQ()">Přidat do fronty</button>
+  </div>
+  <div class="admin-pane" id="ap-stats">
+    <h3 style="margin-bottom:1rem;font-size:1rem;font-weight:700">Přehled dat</h3>
+    <div class="stats-grid" id="stats-grid"></div>
+    <div id="demo-breakdown"></div>
+  </div>
+</div>
+
+<!-- Nav bar -->
+<div class="nav-bar" id="nav-bar" style="display:none">
+  <button class="nav-btn active" id="nav-home" onclick="navTo('home')">
+    <svg viewBox="0 0 24 24"><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/></svg>
+    Dnes
+  </button>
+  <button class="nav-btn" id="nav-results" onclick="navTo('results')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Výsledky
+  </button>
+  <button class="nav-btn" id="nav-admin" onclick="navTo('admin')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/><path d="M15 13l2 2 4-4"/></svg>
+    Admin
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_PIN = '1234';
+const API_KEY_PLACEHOLDER = 'YOUR_ANTHROPIC_KEY_HERE';
+
+// ── STATE ──
+let profile = {};
+let obStep = 0;
+const OB_STEPS = ['age','gender','region','edu'];
+
+let currentScreen = 's-onboard';
+let qIndex = 0;
+let answers = [];
+let streak = 0;
+let lastAdminNav = null;
+
+// ── QUESTIONS DATA ──
+let questions = [
+  {id:1,cat:'Politik',text:'Souhlasíš s tím, že by se Česká republika měla více zapojit do obrany EU?',type:'yesno',status:'approved',
+   opts:['Ano','Ne'],sim:[58,42],total:1240},
+  {id:2,cat:'Ekonomika',text:'Jaký je tvůj největší finanční strach na příští rok?',type:'multi',status:'approved',
+   opts:['Inflace','Ztráta zaměstnání','Nájemné','Ceny energií'],sim:[35,18,28,19],total:987},
+  {id:3,cat:'Zabava',text:'Dáš si dnes večer pivo?',type:'yesno',status:'approved',
+   opts:['Ano','Ne'],sim:[61,39],total:2103},
+  {id:4,cat:'Sport',text:'Jak hodnotíš šance českého hokeje na medaili na MS?',type:'scale',status:'approved',
+   opts:['1','2','3','4','5'],sim:[12,18,30,25,15],total:756},
+  {id:5,cat:'Spolecnost',text:'Důvěřuješ hlavním zpravodajským televizím?',type:'yesno',status:'approved',
+   opts:['Ano','Ne'],sim:[32,68],total:1567},
+];
+
+let pendingQ = [
+  {id:10,cat:'Politik',text:'Myslíš si, že by Česko mělo přijmout euro?',type:'yesno',status:'pending',opts:['Ano','Ne'],sim:[44,56],total:0},
+  {id:11,cat:'Ekonomika',text:'Kouřil/a jsi dnes nebo jsi ex-kuřák?',type:'multi',status:'pending',
+   opts:['Kouřím','Přestal/a jsem','Nikdy jsem nekouřil/a'],sim:[22,28,50],total:0},
+];
+
+// ── UTILS ──
+function getTodayKey(){const d=new Date();return`b_voted_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`}
+function getStreakKey(){return'b_streak'}
+function getStreakDateKey(){return'b_streak_date'}
+function fp(){const s=[navigator.language,screen.width,screen.height,Intl.DateTimeFormat().resolvedOptions().timeZone].join('|');let h=0;for(const c of s){h=(Math.imul(31,h)+c.charCodeAt(0))|0}return Math.abs(h).toString(36)}
+
+function showToast(msg,dur=2000){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  currentScreen=id;
+}
+
+function updateNav(){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  if(currentScreen==='s-results'||currentScreen==='s-voted'){document.getElementById('nav-results').classList.add('active')}
+  else if(currentScreen==='s-admin'){document.getElementById('nav-admin').classList.add('active')}
+  else{document.getElementById('nav-home').classList.add('active')}
+}
+
+function navTo(t){
+  if(t==='home'){
+    if(localStorage.getItem(getTodayKey())==='voted'){showScreen('s-voted')}
+    else if(currentScreen==='s-onboard'){}
+    else{showScreen('s-quiz');renderCard()}
+  } else if(t==='results'){
+    renderResults();showScreen('s-results');
+  } else if(t==='admin'){
+    const pin=prompt('Admin PIN:');
+    if(pin!==ADMIN_PIN){showToast('❌ Špatný PIN');return}
+    renderAdminQueue();renderStats();showScreen('s-admin');
+  }
+  updateNav();
+}
+
+function goBack(){
+  if(localStorage.getItem(getTodayKey())==='voted'){showScreen('s-voted')}
+  else{showScreen('s-done')}
+  updateNav();
+}
+
+// ── ONBOARDING ──
+function renderObDots(){
+  const c=document.getElementById('ob-dots');c.innerHTML='';
+  OB_STEPS.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='ob-dot'+(i<obStep?' done':i===obStep?' cur':'');
+    c.appendChild(d);
+  });
+}
+
+function pickChip(el, key){
+  document.querySelectorAll('#chips-'+key+' .chip').forEach(x=>x.classList.remove('sel'));
+  el.classList.add('sel');
+  profile[key]=el.dataset.v;
+  document.getElementById('ob-next').classList.add('ready');
+}
+
+function obNext(){
+  if(!profile[OB_STEPS[obStep]])return;
+  obStep++;
+  if(obStep>=OB_STEPS.length){finishOnboarding();return}
+  document.querySelectorAll('.ob-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('ob-'+obStep).classList.add('active');
+  document.getElementById('ob-next').classList.remove('ready');
+  renderObDots();
+}
+
+function obSkip(){finishOnboarding()}
+
+function finishOnboarding(){
+  localStorage.setItem('b_profile',JSON.stringify(profile));
+  document.getElementById('nav-bar').style.display='flex';
+  if(localStorage.getItem(getTodayKey())==='voted'){
+    showScreen('s-voted');startCountdown();
+  } else {
+    showScreen('s-quiz');renderCard();
+  }
+  updateNav();
+}
+
+// ── QUIZ ──
+const activeQs = () => questions.filter(q=>q.status==='approved');
+
+function renderCard(){
+  const qs=activeQs();
+  if(qIndex>=qs.length){showDone();return}
+  const q=qs[qIndex];
+  document.getElementById('q-prog').style.width=`${(qIndex/qs.length)*100}%`;
+  document.getElementById('q-counter').textContent=`${qIndex+1}/${qs.length}`;
+  const streakStored=parseInt(localStorage.getItem(getStreakKey())||'0');
+  document.getElementById('streak-n').textContent=streakStored;
+
+  const stack=document.getElementById('card-stack');
+  const old=stack.querySelector('.q-card');
+  if(old)old.remove();
+
+  const card=document.createElement('div');
+  card.className='q-card';
+  card.id='current-card';
+
+  const catClass='q-cat-'+q.cat.toLowerCase().replace(/[^a-z]/g,'');
+  let ansHtml='';
+
+  if(q.type==='yesno'){
+    ansHtml=`<div class="swipe-hint">
+      <div class="swipe-dir left">← Ne</div>
+      <div style="font-size:.72rem;color:var(--hint)">nebo tapni</div>
+      <div class="swipe-dir right">Ano →</div>
+    </div>
+    <div class="ans-yesno">
+      <button class="ans-btn no" onclick="pickYN(0,this)">✗ Ne</button>
+      <button class="ans-btn yes" onclick="pickYN(1,this)">✓ Ano</button>
+    </div>`;
+  } else if(q.type==='multi'){
+    ansHtml='<div class="ans-multi">'+q.opts.map((o,i)=>`<button class="ans-multi-btn" onclick="pickMulti(${i},this)"><span class="opt-key">${String.fromCharCode(65+i)}</span>${o}</button>`).join('')+'</div>';
+  } else if(q.type==='scale'){
+    ansHtml=`<div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);margin-bottom:6px"><span>Vůbec ne</span><span>Rozhodně</span></div><div class="ans-scale">${q.opts.map((o,i)=>`<button class="scale-btn" onclick="pickScale(${i},this)">${o}</button>`).join('')}</div>`;
+  } else if(q.type==='text'){
+    ansHtml=`<div class="ans-text-wrap"><textarea id="text-ans" rows="3" placeholder="Napiš svůj názor..." oninput="document.getElementById('btn-text-send').classList.toggle('ready',this.value.trim().length>2)"></textarea><button class="btn-send-text" id="btn-text-send" onclick="pickText()">Odeslat →</button></div>`;
+  }
+
+  card.innerHTML=`
+    <span class="q-cat-pill ${catClass}">${q.cat}</span>
+    <div class="q-text">${q.text}</div>
+    ${ansHtml}
+    <div id="res-overlay-${q.id}" class="result-overlay" style="display:none"></div>
+  `;
+
+  stack.insertBefore(card,stack.firstChild);
+  setupSwipe(card,q);
+}
+
+function setupSwipe(card,q){
+  if(q.type!=='yesno')return;
+  let startX=0,dx=0,dragging=false;
+  const onStart=e=>{startX=e.touches?e.touches[0].clientX:e.clientX;dragging=true};
+  const onMove=e=>{
+    if(!dragging)return;
+    dx=(e.touches?e.touches[0].clientX:e.clientX)-startX;
+    card.style.transform=`translateX(${dx}px) rotate(${dx*0.03}deg)`;
+    const fbY=document.getElementById('swipe-fb-yes');
+    const fbN=document.getElementById('swipe-fb-no');
+    if(dx>40){fbY.classList.add('show');fbN.classList.remove('show')}
+    else if(dx<-40){fbN.classList.add('show');fbY.classList.remove('show')}
+    else{fbY.classList.remove('show');fbN.classList.remove('show')}
+  };
+  const onEnd=()=>{
+    dragging=false;
+    document.getElementById('swipe-fb-yes').classList.remove('show');
+    document.getElementById('swipe-fb-no').classList.remove('show');
+    if(Math.abs(dx)>80){
+      pickYN(dx>0?1:0,null,true);
+    } else {
+      card.style.transform='';
+    }
+    dx=0;
+  };
+  card.addEventListener('touchstart',onStart,{passive:true});
+  card.addEventListener('touchmove',onMove,{passive:true});
+  card.addEventListener('touchend',onEnd);
+  card.addEventListener('mousedown',onStart);
+  window.addEventListener('mousemove',onMove);
+  window.addEventListener('mouseup',onEnd);
+}
+
+function showResult(q,pickedIdx){
+  const overlay=document.getElementById('res-overlay-'+q.id);
+  if(!overlay)return;
+  const total=q.sim.reduce((a,b)=>a+b,0);
+  const colors=['#2a7d4f','#e8581a','#3a7abf','#9a6800','#b03030'];
+  let html=q.opts.map((o,i)=>{
+    const pct=Math.round((q.sim[i]/total)*100);
+    const isP=i===pickedIdx;
+    return`<div class="res-bar-row">
+      <div class="res-bar-label"><span class="rl">${isP?'<b>'+o+'</b>':o}</span><span class="rp" style="color:${isP?colors[i%colors.length]:'var(--muted)'}">${pct}%</span></div>
+      <div class="res-bar-track"><div class="res-bar-fill" style="width:${pct}%;background:${isP?colors[i%colors.length]:'var(--hint)'}"></div></div>
+    </div>`;
+  }).join('');
+  html+=`<div class="res-total">${(q.total+1).toLocaleString()} hlasů</div>`;
+  html+=`<button class="btn-next-q" onclick="nextCard()">Další →</button>`;
+  overlay.innerHTML=html;overlay.style.display='block';
+}
+
+function pickYN(val,btnEl,fromSwipe=false){
+  const qs=activeQs();const q=qs[qIndex];
+  if(answers[qIndex]!==undefined)return;
+  answers[qIndex]=val;
+  q.sim[val]=(q.sim[val]||0)+1;q.total=(q.total||0)+1;
+  if(fromSwipe){
+    const card=document.getElementById('current-card');
+    if(card){card.classList.add(val?'exit-right':'exit-left')}
+    setTimeout(()=>{showResultAfterSwipe(q,val)},320);
+  } else {
+    if(btnEl){
+      document.querySelectorAll('#current-card .ans-btn').forEach(b=>b.style.opacity='.5');
+      btnEl.classList.add(val?'picked-yes':'picked-no');btnEl.style.opacity='1';
+    }
+    showResult(q,val);
+  }
+}
+
+function showResultAfterSwipe(q,val){
+  const card=document.getElementById('current-card');
+  if(card){card.style.transform='';card.className='q-card';card.style.opacity='1'}
+  document.querySelectorAll('#current-card .ans-btn').forEach((b,i)=>{
+    b.style.opacity='.5';if(i===val)b.classList.add(val?'picked-yes':'picked-no'),b.style.opacity='1';
+  });
+  showResult(q,val);
+}
+
+function pickMulti(idx,btnEl){
+  const qs=activeQs();const q=qs[qIndex];
+  if(answers[qIndex]!==undefined)return;
+  answers[qIndex]=idx;
+  document.querySelectorAll('#current-card .ans-multi-btn').forEach(b=>{b.style.opacity='.5';b.classList.remove('picked')});
+  btnEl.classList.add('picked');btnEl.style.opacity='1';
+  showResult(q,idx);
+}
+
+function pickScale(idx,btnEl){
+  const qs=activeQs();const q=qs[qIndex];
+  if(answers[qIndex]!==undefined)return;
+  answers[qIndex]=idx;
+  document.querySelectorAll('#current-card .scale-btn').forEach(b=>b.classList.remove('picked'));
+  btnEl.classList.add('picked');
+  showResult(q,idx);
+}
+
+function pickText(){
+  const qs=activeQs();const q=qs[qIndex];
+  const val=document.getElementById('text-ans').value.trim();
+  if(!val)return;
+  answers[qIndex]=val;
+  showResult(q,0);
+}
+
+function nextCard(){
+  qIndex++;
+  const qs=activeQs();
+  if(qIndex>=qs.length){showDone();return}
+  renderCard();
+  document.getElementById('q-prog').style.width=`${(qIndex/qs.length)*100}%`;
+  document.getElementById('q-counter').textContent=`${qIndex+1}/${qs.length}`;
+}
+
+function showDone(){
+  localStorage.setItem(getTodayKey(),'voted');
+  updateStreak();
+  const s=parseInt(localStorage.getItem(getStreakKey())||'1');
+  document.getElementById('done-streak').textContent=s;
+  document.getElementById('done-emoji').textContent=s>=7?'🏆':s>=3?'🔥':'🎉';
+  showScreen('s-done');updateNav();
+}
+
+function updateStreak(){
+  const today=new Date().toDateString();
+  const lastDate=localStorage.getItem(getStreakDateKey());
+  const yesterday=new Date(Date.now()-86400000).toDateString();
+  let s=parseInt(localStorage.getItem(getStreakKey())||'0');
+  if(lastDate===yesterday)s++;else if(lastDate!==today)s=1;
+  localStorage.setItem(getStreakKey(),s);
+  localStorage.setItem(getStreakDateKey(),today);
+}
+
+// ── RESULTS ──
+function renderResults(){
+  const qs=activeQs();
+  const colors=['#e8581a','#2a7d4f','#3a7abf','#9a6800','#b03030'];
+  const html=qs.map((q,qi)=>{
+    const total=q.sim.reduce((a,b)=>a+b,0);
+    const myAns=answers[qi];
+    const bars=q.opts.map((o,i)=>{
+      const pct=Math.round((q.sim[i]/total)*100);
+      return`<div class="r-bar-row">
+        <div class="r-label-row"><span class="lbl">${o}</span><span class="pct">${pct}%</span></div>
+        <div class="r-track"><div class="r-fill" style="width:${pct}%;background:${colors[i%colors.length]}"></div></div>
+      </div>`;
+    }).join('');
+    const myAnsLabel=myAns!==undefined?(typeof myAns==='string'?myAns:q.opts[myAns]):'';
+    return`<div class="r-card">
+      <div class="r-card-cat">${q.cat}</div>
+      <div class="r-card-q">${q.text}</div>
+      ${bars}
+      <div class="r-total">${(q.total).toLocaleString()} hlasů</div>
+      ${myAnsLabel?`<div class="r-your-ans">✓ Tvoje odpověď: <b>${myAnsLabel}</b></div>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('results-content').innerHTML=html;
+}
+
+// ── ADMIN ──
+function adminTab(t){
+  document.querySelectorAll('.admin-tab').forEach((b,i)=>b.classList.toggle('active',['queue','add','stats'][i]===t));
+  document.querySelectorAll('.admin-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('ap-'+t).classList.add('active');
+  if(t==='stats')renderStats();
+}
+
+function renderAdminQueue(){
+  const allPending=[...pendingQ,...questions.filter(q=>q.status==='pending')];
+  const list=document.getElementById('q-queue-list');
+  if(!allPending.length){list.innerHTML='<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:2rem">Fronta je prázdná</p>';return}
+  list.innerHTML=allPending.map(q=>`
+    <div class="q-editor" id="qe-${q.id}">
+      <div class="q-editor-top">
+        <span class="q-editor-badge q-cat-pill q-cat-${q.cat.toLowerCase()}">${q.cat}</span>
+        <div class="q-editor-text">${q.text}</div>
+        <span class="q-status-chip chip-${q.status}">${q.status==='pending'?'čeká':'ok'}</span>
+      </div>
+      <div class="q-editor-type">Typ: ${q.type} · ${q.opts.join(' / ')}</div>
+      <div class="q-editor-actions">
+        <button class="q-act-btn approve" onclick="approveQ(${q.id})">✓ Schválit</button>
+        <button class="q-act-btn reject" onclick="rejectQ(${q.id})">✗ Zamítnout</button>
+        <button class="q-act-btn" onclick="editQText(${q.id})">✎ Upravit</button>
+      </div>
+    </div>`).join('');
+}
+
+function approveQ(id){
+  const q=pendingQ.find(x=>x.id===id);
+  if(q){q.status='approved';questions.push(q);pendingQ=pendingQ.filter(x=>x.id!==id)}
+  const card=document.getElementById('qe-'+id);
+  if(card){card.querySelector('.q-status-chip').className='q-status-chip chip-approved';card.querySelector('.q-status-chip').textContent='schváleno';card.querySelector('.q-act-btn.approve').classList.add('approved');card.querySelector('.q-act-btn.approve').textContent='✓ Schváleno'}
+  showToast('✅ Otázka schválena');
+}
+
+function rejectQ(id){
+  pendingQ=pendingQ.filter(x=>x.id!==id);
+  const card=document.getElementById('qe-'+id);
+  if(card){card.style.opacity='.4';card.style.pointerEvents='none'}
+  showToast('🗑 Otázka zamítnuta');
+}
+
+function editQText(id){
+  const q=pendingQ.find(x=>x.id===id)||questions.find(x=>x.id===id);
+  if(!q)return;
+  const newText=prompt('Upravit otázku:',q.text);
+  if(newText){q.text=newText;renderAdminQueue();showToast('✏️ Upraveno')}
+}
+
+function updateAddForm(){
+  const type=document.getElementById('add-type').value;
+  const wrap=document.getElementById('add-opts-wrap');
+  if(type==='multi'){
+    wrap.innerHTML=`<div class="form-group"><label class="form-label">Možnosti</label><div class="opts-editor" id="opts-editor">
+      <div class="opt-row"><input type="text" placeholder="Možnost A" id="opt-0"></div>
+      <div class="opt-row"><input type="text" placeholder="Možnost B" id="opt-1"></div>
+      <div class="opt-row"><input type="text" placeholder="Možnost C" id="opt-2"></div>
+    </div><button class="btn-add-opt" onclick="addOptRow()">+ Přidat možnost</button></div>`;
+  } else {
+    wrap.innerHTML='';
+  }
+}
+
+let optCount=3;
+function addOptRow(){
+  const ed=document.getElementById('opts-editor');
+  const row=document.createElement('div');row.className='opt-row';
+  row.innerHTML=`<input type="text" placeholder="Možnost ${String.fromCharCode(65+optCount)}" id="opt-${optCount}">`;
+  ed.appendChild(row);optCount++;
+}
+
+function addManualQ(){
+  const text=document.getElementById('add-text').value.trim();
+  if(!text){showToast('⚠️ Zadej text otázky');return}
+  const type=document.getElementById('add-type').value;
+  const cat=document.getElementById('add-cat').value;
+  let opts=type==='yesno'?['Ano','Ne']:type==='scale'?['1','2','3','4','5']:type==='text'?['Volná odpověď']:[];
+  if(type==='multi'){
+    opts=[];
+    for(let i=0;i<optCount+3;i++){const el=document.getElementById('opt-'+i);if(el&&el.value.trim())opts.push(el.value.trim())}
+    if(opts.length<2){showToast('⚠️ Přidej alespoň 2 možnosti');return}
+  }
+  const newQ={id:Date.now(),cat,text,type,status:'pending',opts,sim:opts.map(()=>0),total:0};
+  pendingQ.push(newQ);
+  document.getElementById('add-text').value='';
+  adminTab('queue');renderAdminQueue();
+  showToast('✅ Otázka přidána do fronty');
+}
+
+async function generateQuestions(){
+  const spinner=document.getElementById('gen-spin');
+  spinner.style.display='inline-block';
+  showToast('🤖 Generuji otázky...', 3000);
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:'Jsi editor Barometru — denního průzkumu veřejného mínění v České republice. Navrhuj vtipné, aktuální, provokativní otázky pro českou veřejnost. Odpovídej POUZE validním JSON objektem, bez jakéhokoli textu před nebo za ním.',
+        messages:[{role:'user',content:`Navrhni 3 nové otázky pro dnešní Barometr. 
+Kategorie: Politik, Ekonomika, Zabava, Sport, Spolecnost
+Typy: yesno (opts: ["Ano","Ne"]), multi (2-4 opts), scale (opts: ["1","2","3","4","5"])
+Otázky mají být krátké, vtipné, aktuální a relevantní pro Čechy v roce 2025.
+
+Vrať POUZE toto JSON (bez markdown, bez backticks):
+{"questions":[{"cat":"...","text":"...","type":"...","opts":["...","..."]}]}`}]
+      })
+    });
+    const data = await resp.json();
+    const textBlock = data.content.find(b=>b.type==='text');
+    if(!textBlock)throw new Error('No text block');
+    let parsed;
+    try{parsed=JSON.parse(textBlock.text)}
+    catch(e){const m=textBlock.text.match(/\{[\s\S]*\}/);if(m)parsed=JSON.parse(m[0]);else throw e}
+    const newQs=(parsed.questions||[]).map(q=>({
+      id:Date.now()+Math.random(),cat:q.cat,text:q.text,
+      type:q.type,status:'pending',opts:q.opts,
+      sim:q.opts.map(()=>0),total:0
+    }));
+    pendingQ.push(...newQs);
+    renderAdminQueue();
+    showToast(`✅ ${newQs.length} otázky přidány do fronty`);
+  } catch(e) {
+    console.error(e);
+    const fallback=[
+      {id:Date.now(),cat:'Zabava',text:'Byl jsi tento týden v restauraci?',type:'yesno',status:'pending',opts:['Ano','Ne'],sim:[0,0],total:0},
+      {id:Date.now()+1,cat:'Spolecnost',text:'Jak hodnotíš počasí v posledním týdnu?',type:'scale',status:'pending',opts:['1','2','3','4','5'],sim:[0,0,0,0,0],total:0},
+      {id:Date.now()+2,cat:'Politik',text:'Sleduješ politické debaty v televizi?',type:'multi',status:'pending',opts:['Pravidelně','Občas','Nikdy'],sim:[0,0,0],total:0},
+    ];
+    pendingQ.push(...fallback);
+    renderAdminQueue();
+    showToast('⚠️ API nedostupné — ukázková data');
+  }
+  spinner.style.display='none';
+}
+
+function renderStats(){
+  const total=questions.reduce((s,q)=>s+q.total,0);
+  const today=Math.floor(total*0.08);
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="stat-card"><div class="stat-val">${total.toLocaleString()}</div><div class="stat-lbl">celkem hlasů</div></div>
+    <div class="stat-card"><div class="stat-val">${today.toLocaleString()}</div><div class="stat-lbl">dnes</div></div>
+    <div class="stat-card"><div class="stat-val">${questions.length}</div><div class="stat-lbl">aktivních otázek</div></div>
+    <div class="stat-card"><div class="stat-val">${pendingQ.length}</div><div class="stat-lbl">čeká na schválení</div></div>`;
+  const demoData=[
+    {label:'18–34',pct:38},{label:'35–54',pct:35},{label:'55+',pct:27},
+    {label:'Praha',pct:29},{label:'Jihomor.',pct:18},{label:'Moravsk.',pct:16},{label:'Ostatní',pct:37},
+    {label:'Muž',pct:52},{label:'Žena',pct:45},{label:'Jiné',pct:3},
+  ];
+  document.getElementById('demo-breakdown').innerHTML=`<div class="demo-section">
+    <div class="demo-title" style="margin-bottom:.8rem">Demografické rozložení</div>
+    ${demoData.map(d=>`<div class="demo-bar-row">
+      <span class="demo-bar-lbl">${d.label}</span>
+      <div class="demo-bar-track"><div class="demo-bar-fill" style="width:${d.pct}%"></div></div>
+      <span class="demo-bar-pct">${d.pct}%</span>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ── COUNTDOWN ──
+function startCountdown(){
+  const tick=()=>{
+    const now=new Date();
+    const next=new Date(now);next.setDate(next.getDate()+1);next.setHours(6,0,0,0);
+    const diff=next-now;
+    const h=String(Math.floor(diff/3600000)).padStart(2,'0');
+    const m=String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
+    const s=String(Math.floor((diff%60000)/1000)).padStart(2,'0');
+    const el=document.getElementById('voted-countdown');
+    if(el)el.textContent=`${h}:${m}:${s}`;
+  };
+  tick();setInterval(tick,1000);
+}
+
+// ── SHARE ──
+function shareApp(method){
+  const url='https://barometr.cz';
+  const msg='Zkus Barometr — 60 sekund, 5 otázek, zjisti co si myslí ostatní! '+url;
+  if(method==='copy'){navigator.clipboard?navigator.clipboard.writeText(url).then(()=>showToast('📋 Odkaz zkopírován')):showToast('📋 '+url)}
+  else if(method==='whatsapp'){window.open('https://wa.me/?text='+encodeURIComponent(msg))}
+  else if(method==='twitter'){window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(msg))}
+}
+
+// ── INIT ──
+function init(){
+  renderObDots();updateAddForm();
+  const savedProfile=localStorage.getItem('b_profile');
+  if(savedProfile){
+    try{profile=JSON.parse(savedProfile)}catch(e){}
+    document.getElementById('nav-bar').style.display='flex';
+    if(localStorage.getItem(getTodayKey())==='voted'){
+      showScreen('s-voted');startCountdown();
+    } else {
+      showScreen('s-quiz');renderCard();
+    }
+    updateNav();
+  }
+}
+init();
+
+// ── DEV RESET (triple-tap logo) ──
+(function(){
+  let taps=0,timer;
+  document.addEventListener('click',function(e){
+    const brand=document.getElementById('brand-tap');
+    if(!brand||!brand.contains(e.target))return;
+    taps++;
+    clearTimeout(timer);
+    timer=setTimeout(()=>{taps=0},600);
+    if(taps>=3){
+      taps=0;
+      Object.keys(localStorage).filter(k=>k.startsWith('b_')).forEach(k=>localStorage.removeItem(k));
+      qIndex=0;answers=[];profile={};obStep=0;
+      document.getElementById('nav-bar').style.display='none';
+      showScreen('s-onboard');
+      renderObDots();
+      document.querySelectorAll('.ob-step').forEach((s,i)=>s.classList.toggle('active',i===0));
+      showToast('\ud83d\udd04 Reset — zac\u00edn\u00e1me znovu');
+    }
+  });
+})();
+
+</script>
+</body>
+</html>
